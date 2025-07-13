@@ -21,7 +21,6 @@ public class TicketListCommandTests
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ISupportService _supportService;
-    private readonly ISupportFilterProcessor _filterProcessor;
     private readonly ITenantService _tenantService;
     private readonly ILogger<TicketListCommand> _logger;
     private readonly TicketListCommand _command;
@@ -31,13 +30,11 @@ public class TicketListCommandTests
     public TicketListCommandTests()
     {
         _supportService = Substitute.For<ISupportService>();
-        _filterProcessor = Substitute.For<ISupportFilterProcessor>();
         _tenantService = Substitute.For<ITenantService>();
         _logger = Substitute.For<ILogger<TicketListCommand>>();
 
         var collection = new ServiceCollection();
         collection.AddSingleton(_supportService);
-        collection.AddSingleton(_filterProcessor);
         collection.AddSingleton(_tenantService);
         _serviceProvider = collection.BuildServiceProvider();
 

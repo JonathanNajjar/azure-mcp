@@ -27,14 +27,14 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
     }
 
     [Fact] 
-    public async Task Should_Handle_Filter_Parameter()
+    public async Task Should_Handle_Valid_OData_Filter()
     {
         var result = await CallToolAsync(
             "azmcp-support-ticket-list",
             new()
             {
                 { "subscription", Settings.SubscriptionId },
-                { "filter", "Open" },
+                { "filter", "Status eq 'Open'" },
                 { "top", "5" }
             });
 
@@ -91,7 +91,7 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
     }
 
     [Fact]
-    public async Task Should_Handle_Service_Name_Natural_Language_Filter()
+    public async Task Should_Return_Error_For_Unsupported_ServiceName_Filter()
     {
         var result = await CallToolAsync(
             "azmcp-support-ticket-list",
@@ -103,17 +103,43 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
             });
 
         Assert.NotNull(result);
+        
+        // Should return an error for unsupported property
+        var errorMessage = result.Value.GetProperty("message").GetString();
+        Assert.Contains("serviceName", errorMessage);
+        Assert.Contains("not supported for OData filtering", errorMessage);
+        Assert.Contains("Supported properties: CreatedDate, Status, ProblemClassificationId, ServiceId", errorMessage);
     }
 
     [Fact]
-    public async Task Should_Handle_Problem_Classification_Natural_Language_Filter()
+    public async Task Should_Return_Error_For_Unsupported_ProblemClassificationName_Filter()
     {
         var result = await CallToolAsync(
             "azmcp-support-ticket-list",
             new()
             {
                 { "subscription", Settings.SubscriptionId },
-                { "filter", "problemClassification eq 'pricing'" },
+                { "filter", "problemClassificationName eq 'pricing'" },
+                { "top", "5" }
+            });
+
+        Assert.NotNull(result);
+        
+        // Should return an error for unsupported property
+        var errorMessage = result.Value.GetProperty("message").GetString();
+        Assert.Contains("problemClassificationName", errorMessage);
+        Assert.Contains("not supported for OData filtering", errorMessage);
+    }
+
+    [Fact]
+    public async Task Should_Handle_Valid_CreatedDate_Filter()
+    {
+        var result = await CallToolAsync(
+            "azmcp-support-ticket-list",
+            new()
+            {
+                { "subscription", Settings.SubscriptionId },
+                { "filter", "CreatedDate ge 2024-01-01T00:00:00Z" },
                 { "top", "5" }
             });
 
@@ -121,14 +147,14 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
     }
 
     [Fact]
-    public async Task Should_Handle_Combined_Service_And_Problem_Classification_Filter()
+    public async Task Should_Handle_Valid_Combined_Filter()
     {
         var result = await CallToolAsync(
             "azmcp-support-ticket-list",
             new()
             {
                 { "subscription", Settings.SubscriptionId },
-                { "filter", "serviceName eq 'Billing' and problemClassification eq 'pricing'" },
+                { "filter", "Status eq 'Open' and CreatedDate ge 2024-01-01T00:00:00Z" },
                 { "top", "5" }
             });
 
@@ -136,79 +162,42 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
     }
 
     [Fact]
-    public async Task Should_Handle_Service_Name_With_Partial_Match()
+    public async Task Should_Return_Error_For_Unsupported_ServiceDisplayName_Filter()
     {
         var result = await CallToolAsync(
             "azmcp-support-ticket-list",
             new()
             {
                 { "subscription", Settings.SubscriptionId },
-                { "filter", "serviceName eq 'Virtual Machine'" },
+                { "filter", "serviceDisplayName eq 'Storage'" },
                 { "top", "5" }
             });
 
         Assert.NotNull(result);
+        
+        // Should return an error for unsupported property
+        var errorMessage = result.Value.GetProperty("message").GetString();
+        Assert.Contains("serviceDisplayName", errorMessage);
+        Assert.Contains("not supported for OData filtering", errorMessage);
     }
 
     [Fact]
-    public async Task Should_Handle_Status_Filter_With_Natural_Language()
+    public async Task Should_Return_Error_For_Unsupported_Title_Filter()
     {
         var result = await CallToolAsync(
             "azmcp-support-ticket-list",
             new()
             {
                 { "subscription", Settings.SubscriptionId },
-                { "filter", "Status eq 'Open' and serviceName eq 'Storage'" },
+                { "filter", "title eq 'My Support Ticket'" },
                 { "top", "5" }
             });
 
         Assert.NotNull(result);
-    }
-
-    [Fact]
-    public async Task Should_Handle_Date_Filter_With_Natural_Language()
-    {
-        var result = await CallToolAsync(
-            "azmcp-support-ticket-list",
-            new()
-            {
-                { "subscription", Settings.SubscriptionId },
-                { "filter", "CreatedDate ge 2024-01-01T00:00:00Z and serviceName eq 'Billing'" },
-                { "top", "5" }
-            });
-
-        Assert.NotNull(result);
-    }
-
-    [Fact]
-    public async Task Should_Handle_Invalid_Service_Name_Gracefully()
-    {
-        var result = await CallToolAsync(
-            "azmcp-support-ticket-list",
-            new()
-            {
-                { "subscription", Settings.SubscriptionId },
-                { "filter", "serviceName eq 'NonExistentService'" },
-                { "top", "5" }
-            });
-
-        // Should still return a result, even if the service name doesn't resolve
-        Assert.NotNull(result);
-    }
-
-    [Fact]
-    public async Task Should_Handle_Invalid_Problem_Classification_Gracefully()
-    {
-        var result = await CallToolAsync(
-            "azmcp-support-ticket-list",
-            new()
-            {
-                { "subscription", Settings.SubscriptionId },
-                { "filter", "problemClassification eq 'NonExistentClassification'" },
-                { "top", "5" }
-            });
-
-        // Should still return a result, even if the problem classification doesn't resolve
-        Assert.NotNull(result);
+        
+        // Should return an error for unsupported property
+        var errorMessage = result.Value.GetProperty("message").GetString();
+        Assert.Contains("title", errorMessage);
+        Assert.Contains("not supported for OData filtering", errorMessage);
     }
 }

@@ -13,7 +13,6 @@ public class SupportSetup : IAreaSetup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddSingleton<ISupportFilterProcessor, SupportFilterProcessor>();
         services.AddSingleton<ISupportService, SupportService>();
     }
 

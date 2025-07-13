@@ -10,8 +10,5 @@ namespace AzureMcp.Areas.Support.Commands;
 [JsonSerializable(typeof(TicketListCommand.TicketListCommandResult))]
 [JsonSerializable(typeof(SupportTicket))]
 [JsonSerializable(typeof(ContactInformation))]
-[JsonSerializable(typeof(FilterContext))]
-[JsonSerializable(typeof(FilterProcessResult))]
-[JsonSerializable(typeof(PropertyProcessResult))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class SupportJsonContext : JsonSerializerContext;

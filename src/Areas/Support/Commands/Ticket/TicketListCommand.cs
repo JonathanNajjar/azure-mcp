@@ -19,9 +19,11 @@ public sealed class TicketListCommand(ILogger<TicketListCommand> logger)
 
     public override string Description =>
         """
-        List and filter Azure support tickets in your subscription. You can filter by status, severity, 
-        or search terms to find specific tickets. Returns an array of support ticket objects with details 
-        including ticket ID, title, status, severity, and contact information.
+        List and filter Azure support tickets in your subscription. You can filter using OData syntax 
+        with supported properties: CreatedDate, Status, ProblemClassificationId, ServiceId. 
+        Use the service and classification commands to discover the appropriate IDs for filtering.
+        Returns an array of support ticket objects with details including ticket ID, title, status, 
+        severity, and contact information.
         """;
 
     public override string Title => CommandTitle;
