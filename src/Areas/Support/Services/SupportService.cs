@@ -157,4 +157,34 @@ public class SupportService(ISubscriptionService subscriptionService, ITenantSer
             throw new InvalidOperationException($"Failed to get problem classifications: {ex.Message}", ex);
         }
     }
+
+    public async Task<List<AzureServiceInfo>> ListAzureServicesAsync(
+        string? tenantId = null,
+        RetryPolicyOptions? retryPolicy = null)
+    {
+        try
+        {
+            var armClient = await CreateArmClientAsync(tenantId, retryPolicy);
+            var tenantResource = armClient.GetTenants().First();
+            
+            var supportServices = tenantResource.GetSupportAzureServices();
+            var azureServices = new List<AzureServiceInfo>();
+
+            await foreach (var service in supportServices.GetAllAsync())
+            {
+                azureServices.Add(new AzureServiceInfo(
+                    Id: service.Id?.ToString() ?? string.Empty,
+                    Name: service.Data?.Name ?? string.Empty,
+                    DisplayName: service.Data?.DisplayName ?? string.Empty,
+                    ResourceType: service.Data?.ResourceType ?? string.Empty
+                ));
+            }
+
+            return azureServices;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to list Azure services: {ex.Message}", ex);
+        }
+    }
 }

@@ -251,4 +251,39 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
         // Should handle gracefully - either return empty results or error
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public async Task Should_List_Azure_Services()
+    {
+        var result = await CallToolAsync(
+            "azmcp-support-service-list",
+            new()
+            {
+                { "subscription", Settings.SubscriptionId }
+            });
+
+        Assert.NotNull(result);
+        
+        // Verify the response structure
+        var content = result.Value.GetProperty("content").ToString();
+        Assert.NotNull(content);
+        
+        // Should contain services array
+        Assert.Contains("Services", content);
+        
+        // Should contain common Azure services
+        Assert.Contains("compute", content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Should_Return_400_For_Missing_Subscription_In_Service_List()
+    {
+        var result = await CallToolAsync(
+            "azmcp-support-service-list",
+            new());
+
+        Assert.Equal(400, result.GetProperty("status").GetInt32());
+        Assert.Contains("subscription",
+            result.GetProperty("message").GetString()!.ToLower());
+    }
 }

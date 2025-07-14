@@ -19,4 +19,8 @@ public interface ISupportService
     Task<List<ProblemClassificationInfo>> GetProblemClassificationsAsync(
         string? serviceName = null,
         string? tenantId = null);
+
+    Task<List<AzureServiceInfo>> ListAzureServicesAsync(
+        string? tenantId = null,
+        RetryPolicyOptions? retryPolicy = null);
 }
