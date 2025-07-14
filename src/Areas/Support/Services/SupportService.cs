@@ -15,6 +15,18 @@ public class SupportService(ISubscriptionService subscriptionService, ITenantSer
 {
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
 
+    // Caching for Azure Services (global constant data)
+    private static readonly SemaphoreSlim _servicesLock = new(1, 1);
+    private static List<AzureServiceInfo>? _cachedServices;
+    private static DateTime _servicesExpiry = DateTime.MinValue;
+    
+    // Caching for Problem Classifications (per-service constant data)
+    private static readonly SemaphoreSlim _classificationsLock = new(1, 1);
+    private static Dictionary<string, List<ProblemClassificationInfo>>? _cachedClassifications;
+    private static DateTime _classificationsExpiry = DateTime.MinValue;
+    
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
+
     public async Task<List<SupportTicket>> ListSupportTickets(
         string subscription,
         string? filter = null,
@@ -104,13 +116,27 @@ public class SupportService(ISubscriptionService subscriptionService, ITenantSer
         string? serviceName = null,
         string? tenantId = null)
     {
+        // Use cache key based on service name (null for all services)
+        var cacheKey = serviceName ?? "ALL_SERVICES";
+
+        // Check cache first
+        await _classificationsLock.WaitAsync();
         try
         {
+            if (_cachedClassifications != null && 
+                DateTime.UtcNow < _classificationsExpiry &&
+                _cachedClassifications.TryGetValue(cacheKey, out var cachedResult))
+            {
+                return cachedResult;
+            }
+
+            // Initialize cache if needed
+            _cachedClassifications ??= new Dictionary<string, List<ProblemClassificationInfo>>();
+
+            // Fetch from Azure API
             var armClient = await CreateArmClientAsync(tenantId);
             var tenantResource = armClient.GetTenants().First();
-            
             var supportServices = tenantResource.GetSupportAzureServices();
-            
             var problemClassifications = new List<ProblemClassificationInfo>();
 
             if (!string.IsNullOrEmpty(serviceName))
@@ -150,11 +176,19 @@ public class SupportService(ISubscriptionService subscriptionService, ITenantSer
                 }
             }
 
+            // Update cache
+            _cachedClassifications[cacheKey] = problemClassifications;
+            _classificationsExpiry = DateTime.UtcNow.Add(CacheDuration);
+
             return problemClassifications;
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to get problem classifications: {ex.Message}", ex);
+        }
+        finally
+        {
+            _classificationsLock.Release();
         }
     }
 
@@ -162,11 +196,18 @@ public class SupportService(ISubscriptionService subscriptionService, ITenantSer
         string? tenantId = null,
         RetryPolicyOptions? retryPolicy = null)
     {
+        // Check cache first
+        await _servicesLock.WaitAsync();
         try
         {
+            if (_cachedServices != null && DateTime.UtcNow < _servicesExpiry)
+            {
+                return _cachedServices;
+            }
+
+            // Fetch from Azure API
             var armClient = await CreateArmClientAsync(tenantId, retryPolicy);
             var tenantResource = armClient.GetTenants().First();
-            
             var supportServices = tenantResource.GetSupportAzureServices();
             var azureServices = new List<AzureServiceInfo>();
 
@@ -180,11 +221,19 @@ public class SupportService(ISubscriptionService subscriptionService, ITenantSer
                 ));
             }
 
+            // Update cache
+            _cachedServices = azureServices;
+            _servicesExpiry = DateTime.UtcNow.Add(CacheDuration);
+
             return azureServices;
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to list Azure services: {ex.Message}", ex);
+        }
+        finally
+        {
+            _servicesLock.Release();
         }
     }
 }

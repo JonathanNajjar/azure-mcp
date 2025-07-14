@@ -282,8 +282,8 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
             "azmcp-support-service-list",
             new());
 
-        Assert.Equal(400, result.GetProperty("status").GetInt32());
+        Assert.Equal(400, result.Value.GetProperty("status").GetInt32());
         Assert.Contains("subscription",
-            result.GetProperty("message").GetString()!.ToLower());
+            result.Value.GetProperty("message").GetString()!.ToLower());
     }
 }
