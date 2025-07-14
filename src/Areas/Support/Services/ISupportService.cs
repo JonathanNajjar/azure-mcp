@@ -15,4 +15,8 @@ public interface ISupportService
         int? top = null,
         string? tenantId = null,
         RetryPolicyOptions? retryPolicy = null);
+
+    Task<List<ProblemClassificationInfo>> GetProblemClassificationsAsync(
+        string? serviceName = null,
+        string? tenantId = null);
 }

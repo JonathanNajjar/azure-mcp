@@ -200,4 +200,55 @@ public class SupportCommandTests(LiveTestFixture liveTestFixture, ITestOutputHel
         Assert.Contains("title", errorMessage);
         Assert.Contains("not supported for OData filtering", errorMessage);
     }
+
+    [Fact]
+    public async Task Should_Get_Problem_Classifications_For_Service()
+    {
+        var result = await CallToolAsync(
+            "azmcp-support-problemclassification-get",
+            new()
+            {
+                { "serviceName", "billing" }
+            });
+
+        Assert.NotNull(result);
+        
+        // Verify the response structure
+        var content = result.Value.GetProperty("content").ToString();
+        Assert.NotNull(content);
+        
+        // Should contain problem classifications for the billing service
+        Assert.Contains("billing", content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Should_Get_All_Problem_Classifications()
+    {
+        var result = await CallToolAsync(
+            "azmcp-support-problemclassification-get",
+            new());
+
+        Assert.NotNull(result);
+        
+        // Verify the response structure
+        var content = result.Value.GetProperty("content").ToString();
+        Assert.NotNull(content);
+        
+        // Should contain multiple services
+        Assert.Contains("Results", content);
+    }
+
+    [Fact]
+    public async Task Should_Handle_Invalid_Service_Name()
+    {
+        var result = await CallToolAsync(
+            "azmcp-support-problemclassification-get",
+            new()
+            {
+                { "serviceName", "invalid-service-name-that-does-not-exist" }
+            });
+
+        // Should handle gracefully - either return empty results or error
+        Assert.NotNull(result);
+    }
 }

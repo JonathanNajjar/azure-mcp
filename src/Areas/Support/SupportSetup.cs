@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureMcp.Areas.Support.Commands.ProblemClassification;
 using AzureMcp.Areas.Support.Commands.Ticket;
 using AzureMcp.Areas.Support.Services;
 using AzureMcp.Commands;
@@ -26,7 +27,15 @@ public class SupportSetup : IAreaSetup
         var ticket = new CommandGroup("ticket", "Support ticket operations - Commands for listing and managing Azure support tickets in your subscription.");
         support.AddSubGroup(ticket);
 
+        // Create Problem Classification subgroup
+        var problemClassification = new CommandGroup("problemclassification", "Problem classification operations - Commands for discovering Azure support problem classifications.");
+        support.AddSubGroup(problemClassification);
+
         // Register ticket commands
         ticket.AddCommand("list", new TicketListCommand(loggerFactory.CreateLogger<TicketListCommand>()));
+
+        // Register problem classification commands
+        problemClassification.AddCommand("get", new ProblemClassificationGetCommand(
+            loggerFactory.CreateLogger<ProblemClassificationGetCommand>()));
     }
 }

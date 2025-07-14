@@ -99,4 +99,62 @@ public class SupportService(ISubscriptionService subscriptionService, ITenantSer
             }
         }
     }
+
+    public async Task<List<ProblemClassificationInfo>> GetProblemClassificationsAsync(
+        string? serviceName = null,
+        string? tenantId = null)
+    {
+        try
+        {
+            var armClient = await CreateArmClientAsync(tenantId);
+            var tenantResource = armClient.GetTenants().First();
+            
+            var supportServices = tenantResource.GetSupportAzureServices();
+            
+            var problemClassifications = new List<ProblemClassificationInfo>();
+
+            if (!string.IsNullOrEmpty(serviceName))
+            {
+                // Get problem classifications for a specific service
+                var serviceResource = await supportServices.GetAsync(serviceName);
+                var classifications = serviceResource.Value.GetProblemClassifications();
+                
+                await foreach (var classification in classifications.GetAllAsync())
+                {
+                    problemClassifications.Add(new ProblemClassificationInfo(
+                        Id: classification.Id?.ToString() ?? string.Empty,
+                        Name: classification.Data?.Name ?? string.Empty,
+                        DisplayName: classification.Data?.DisplayName ?? string.Empty,
+                        ServiceName: serviceName,
+                        ServiceDisplayName: serviceResource.Value.Data?.DisplayName ?? serviceName
+                    ));
+                }
+            }
+            else
+            {
+                // Get problem classifications for all services
+                await foreach (var service in supportServices.GetAllAsync())
+                {
+                    var classifications = service.GetProblemClassifications();
+                    
+                    await foreach (var classification in classifications.GetAllAsync())
+                    {
+                        problemClassifications.Add(new ProblemClassificationInfo(
+                            Id: classification.Id?.ToString() ?? string.Empty,
+                            Name: classification.Data?.Name ?? string.Empty,
+                            DisplayName: classification.Data?.DisplayName ?? string.Empty,
+                            ServiceName: service.Data?.Name ?? string.Empty,
+                            ServiceDisplayName: service.Data?.DisplayName ?? string.Empty
+                        ));
+                    }
+                }
+            }
+
+            return problemClassifications;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to get problem classifications: {ex.Message}", ex);
+        }
+    }
 }
